@@ -27,7 +27,7 @@ parser.add_argument(
     "--device",
     "-d",
     type=str,
-    choices=["auto", "cuda", "cpu"],
+    choices=["auto", "cuda", "cpu", "cuda:0", "cuda:1", "cuda:2", "cuda:3"],
     default="auto",
     help="Target device to process abliteration. Warning, bitsandbytes quantization DOES NOT support CPU",
 )
@@ -40,6 +40,7 @@ parser.add_argument(
     help="Precision to use for ablation, default is bf16",
 )
 parser.add_argument("--output", "-o", type=str, required=True, help="Output directory")
+parser.add_argument("--intermed", "-i", type=str, required=True, help="Intermediary directory")
 parser.add_argument(
     "--skip-begin",
     type=int,
@@ -104,11 +105,20 @@ if sum([args.scan_all, args.layer is not None, args.layer_fraction != 1.0]) > 1:
 
 def save_refusal_dir(refusal_dir: torch.Tensor, file_path: str):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    torch.save(refusal_dir, file_path)
-
+    try:
+        torch.save(refusal_dir, file_path)
+    except Exception as e:
+        print(f"Error saving refusal direction to {file_path}: {e}")
 
 def load_refusal_dir(file_path: str) -> torch.Tensor:
-    return torch.load(file_path)
+    try:
+        return torch.load(file_path)
+    except FileNotFoundError:
+        print(f"Refusal direction file not found: {file_path}")
+        return None
+    except Exception as e:
+        print(f"Error loading refusal direction from {file_path}: {e}")
+        return None
 
 def compute_refusals(
     model: PreTrainedModel,
@@ -291,10 +301,12 @@ if __name__ == "__main__":
     if args.layer is not None:
         if args.layer < 1 or args.layer >= num_layers:
             raise ValueError(f"Invalid layer index {args.layer}. Available layers: 1 to {num_layers - 1}.")
-        tensor_file = f"refusal_tensors/{args.model.replace('/', '_')}_layer_{args.layer}_refusal_dir.pt"
+        tensor_file = os.path.join(args.intermed, f"{args.model.replace('/', '_')}_layer_{args.layer}_refusal_dir.pt")
         if os.path.exists(tensor_file):
             print(f"Loading precomputed refusal dir for layer {args.layer} from file...")
-            refusal_dirs[args.layer] = load_refusal_dir(tensor_file)
+            refusal_dir = load_refusal_dir(tensor_file)
+            if refusal_dir is not None:
+                refusal_dirs[args.layer] = refusal_dir
         else:
             print(f"Computing refusal dir for layer {args.layer}...")
             refusal_dir = compute_refusals(model, tokenizer, args.layer)
@@ -302,23 +314,27 @@ if __name__ == "__main__":
             refusal_dirs[args.layer] = refusal_dir
     elif args.scan_all:
         for layer_idx in range(args.skip_begin, num_layers - args.skip_end):
-            tensor_file = f"refusal_tensors/{args.model.replace('/', '_')}_layer_{layer_idx}_refusal_dir.pt"
+            tensor_file = os.path.join(args.intermed, f"{args.model.replace('/', '_')}_layer_{layer_idx}_refusal_dir.pt")
             if os.path.exists(tensor_file):
                 print(f"Loading precomputed refusal dir for layer {layer_idx} from file...")
-                refusal_dirs[layer_idx] = load_refusal_dir(tensor_file)
-            else:
-                    print(f"Resuming calculation for layer {layer_idx}...")
-                    refusal_dir = compute_refusals(model, tokenizer, layer_idx)
-                    save_refusal_dir(refusal_dir, tensor_file)
+                refusal_dir = load_refusal_dir(tensor_file)
+                if refusal_dir is not None:
                     refusal_dirs[layer_idx] = refusal_dir
+            else:
+                print(f"Computing refusal dir for layer {layer_idx}...")
+                refusal_dir = compute_refusals(model, tokenizer, layer_idx)
+                save_refusal_dir(refusal_dir, tensor_file)
+                refusal_dirs[layer_idx] = refusal_dir
     elif args.layer_fraction is not None:
         layer_idx = int(num_layers * args.layer_fraction)
         if layer_idx < 1 or layer_idx >= num_layers:
             raise ValueError(f"Invalid layer fraction {args.layer_fraction}. It must correspond to a layer index between 1 and {num_layers - 1}.")
-        tensor_file = f"refusal_tensors/{args.model.replace('/', '_')}_layer_{layer_idx}_refusal_dir.pt"
+        tensor_file = os.path.join(args.intermed, f"{args.model.replace('/', '_')}_layer_{layer_idx}_refusal_dir.pt")
         if os.path.exists(tensor_file):
             print(f"Loading precomputed refusal dir for layer fraction {args.layer_fraction} (layer {layer_idx}) from file...")
-            refusal_dirs[layer_idx] = load_refusal_dir(tensor_file)
+            refusal_dir = load_refusal_dir(tensor_file)
+            if refusal_dir is not None:
+                refusal_dirs[layer_idx] = refusal_dir
         else:
             print(f"Computing refusal dir for layer fraction {args.layer_fraction} (layer {layer_idx})...")
             refusal_dir = compute_refusals(model, tokenizer, layer_idx)
