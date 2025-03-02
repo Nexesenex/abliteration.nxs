@@ -98,7 +98,52 @@ quant.add_argument(
     default=False,
     help="Load model in 8-bit precision using bitsandbytes",
 )
+
+tensor_group = parser.add_mutually_exclusive_group()
+tensor_group.add_argument(
+    "--all-tensors", action="store_true", default=False,
+    help="Modify all tensors (default)."
+)
+tensor_group.add_argument(
+    "--attn-k-proj", "-k", action="store_true", default=False,
+    help="Modify query projection weights (self_attn.q_proj.weight)."
+)
+tensor_group.add_argument(
+    "--attn-o-proj", "-o", action="store_true", default=True,
+    help="Modify key projection weights (self_attn.k_proj.weight)."
+)
+tensor_group.add_argument(
+    "--attn-q-proj", "-q", action="store_true", default=False,
+    help="Modify value projection weights (self_attn.v_proj.weight)."
+)
+tensor_group.add_argument(
+    "--attn-v-proj", "-v", action="store_true", default=False,
+    help="Modify output projection weights (self_attn.o_proj.weight)."
+)
+tensor_group.add_argument(
+    "--down-proj", "-d", action="store_true", default=True,
+    help="Modify down projection weights (mlp.down_proj.weight)."
+)
+tensor_group.add_argument(
+    "--gate-proj", "-g", action="store_true", default=False,
+    help="Modify gate projection weights (mlp.gate_proj.weight)."
+)
+tensor_group.add_argument(
+    "--up-proj", "-u", action="store_true", default=False,
+    help="Modify up projection weights (mlp.up_proj.weight)."
+)
+tensor_group.add_argument(
+    "--input-layernorm", "-il", action="store_true", default=False,
+    help="Modify input layer normalization weights (input_layernorm.weight)."
+)
+tensor_group.add_argument(
+    "--post-attention-layernorm", "-pal", action="store_true", default=False,
+    help="Modify post-attention layer normalization weights (post_attention_layernorm.weight)."
+)
+
 args = parser.parse_args()
+
+
 
 if sum([args.scan_all, args.layer is not None, args.layer_fraction != 1.0]) > 1:
     raise ValueError("Only one of --layer-fraction, --layer, or --scan-all can be used at a time.")
@@ -238,16 +283,60 @@ def apply_abliteration(
     ):
         if layer_idx in refusal_dirs:
             refusal_dir = refusal_dirs[layer_idx]
-            lm_model.layers[layer_idx].self_attn.o_proj.weight = modify_tensor(
-                lm_model.layers[layer_idx].self_attn.o_proj.weight.data,
-                refusal_dir,
-                scale_factor,
-            )
-            lm_model.layers[layer_idx].mlp.down_proj.weight = modify_tensor(
-                lm_model.layers[layer_idx].mlp.down_proj.weight.data,
-                refusal_dir,
-                scale_factor,
-            )
+            if args.all_tensors or args.q:
+                lm_model.layers[layer_idx].self_attn.q_proj.weight = modify_tensor(
+                    lm_model.layers[layer_idx].self_attn.q_proj.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )
+            if args.all_tensors or args.k:
+                lm_model.layers[layer_idx].self_attn.k_proj.weight = modify_tensor(
+                    lm_model.layers[layer_idx].self_attn.k_proj.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )  
+            if args.all_tensors or args.v:
+                lm_model.layers[layer_idx].self_attn.v_proj.weight = modify_tensor(
+                    lm_model.layers[layer_idx].self_attn.v_proj.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )  
+            if args.all_tensors or args.o:
+                lm_model.layers[layer_idx].self_attn.o_proj.weight = modify_tensor(
+                    lm_model.layers[layer_idx].self_attn.o_proj.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )  
+            if args.all_tensors or args.down_proj:
+                lm_model.layers[layer_idx].mlp.down_proj.weight = modify_tensor(
+                    lm_model.layers[layer_idx].mlp.down_proj.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )  
+            if args.all_tensors or args.gate_proj:
+                lm_model.layers[layer_idx].mlp.gate_proj.weight = modify_tensor(
+                    lm_model.layers[layer_idx].mlp.gate_proj.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )  
+            if args.all_tensors or args.up_proj:
+                lm_model.layers[layer_idx].mlp.up_proj.weight = modify_tensor(
+                    lm_model.layers[layer_idx].mlp.up_proj.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )  
+            if args.all_tensors or args.input_layernorm:
+                lm_model.layers[layer_idx].input_layernorm.weight = modify_tensor(
+                    lm_model.layers[layer_idx].input_layernorm.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )  
+            if args.all_tensors or args.post_attention_layernorm:
+                lm_model.layers[layer_idx].post_attention_layernorm.weight = modify_tensor(
+                    lm_model.layers[layer_idx].post_attention_layernorm.weight.data,
+                    refusal_dir,
+                    scale_factor,
+                )
 
     torch.cuda.empty_cache()
     gc.collect()
