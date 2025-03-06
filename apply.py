@@ -89,16 +89,16 @@ def apply_saved_tensors(
             # refusal_dir,
             # scale_factor,
         # )  
-        lm_model.layers[layer_idx].input_layernorm.weight = modify_tensor(
-            lm_model.layers[layer_idx].input_layernorm.weight.data,
-            refusal_dir,
-            scale_factor,
-        )  
-        lm_model.layers[layer_idx].post_attention_layernorm.weight = modify_tensor(
-            lm_model.layers[layer_idx].post_attention_layernorm.weight.data,
-            refusal_dir,
-            scale_factor,
-        )
+        # lm_model.layers[layer_idx].input_layernorm.weight = modify_tensor(
+            # lm_model.layers[layer_idx].input_layernorm.weight.data,
+            # refusal_dir,
+            # scale_factor,
+        # )  
+        # lm_model.layers[layer_idx].post_attention_layernorm.weight = modify_tensor(
+            # lm_model.layers[layer_idx].post_attention_layernorm.weight.data,
+            # refusal_dir,
+            # scale_factor,
+        # )
     torch.cuda.empty_cache()
     gc.collect()
 

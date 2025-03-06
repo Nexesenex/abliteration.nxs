@@ -302,18 +302,18 @@ def apply_abliteration(
                     # refusal_dir,
                     # scale_factor,
                 # )  
-            if args.at or args.aop:
-                lm_model.layers[layer_idx].self_attn.o_proj.weight = modify_tensor(
-                    lm_model.layers[layer_idx].self_attn.o_proj.weight.data,
-                    refusal_dir,
-                    scale_factor,
-                )  
-            if args.at or args.down_proj:
-                lm_model.layers[layer_idx].mlp.down_proj.weight = modify_tensor(
-                    lm_model.layers[layer_idx].mlp.down_proj.weight.data,
-                    refusal_dir,
-                    scale_factor,
-                )  
+            # if args.at or args.aop:
+            lm_model.layers[layer_idx].self_attn.o_proj.weight = modify_tensor(
+                lm_model.layers[layer_idx].self_attn.o_proj.weight.data,
+                refusal_dir,
+                scale_factor,
+            )  
+            # if args.at or args.down_proj:
+            lm_model.layers[layer_idx].mlp.down_proj.weight = modify_tensor(
+                lm_model.layers[layer_idx].mlp.down_proj.weight.data,
+                refusal_dir,
+                scale_factor,
+            )  
             # if args.gate_proj:
                 # lm_model.layers[layer_idx].mlp.gate_proj.weight = modify_tensor(
                     # lm_model.layers[layer_idx].mlp.gate_proj.weight.data,
@@ -326,18 +326,18 @@ def apply_abliteration(
                     # refusal_dir,
                     # scale_factor,
                 # )  
-            if args.at or args.input_layernorm:
-                lm_model.layers[layer_idx].input_layernorm.weight = modify_tensor(
-                    lm_model.layers[layer_idx].input_layernorm.weight.data,
-                    refusal_dir,
-                    scale_factor,
+            # if args.at or args.input_layernorm:
+            lm_model.layers[layer_idx].input_layernorm.weight = modify_tensor(
+                lm_model.layers[layer_idx].input_layernorm.weight.data,
+                refusal_dir,
+                scale_factor,
                 )  
-            if args.at or args.post_attention_layernorm:
-                lm_model.layers[layer_idx].post_attention_layernorm.weight = modify_tensor(
-                    lm_model.layers[layer_idx].post_attention_layernorm.weight.data,
-                    refusal_dir,
-                    scale_factor,
-                )
+            # if args.at or args.post_attention_layernorm:
+            lm_model.layers[layer_idx].post_attention_layernorm.weight = modify_tensor(
+                lm_model.layers[layer_idx].post_attention_layernorm.weight.data,
+                refusal_dir,
+                scale_factor,
+            )
 
     torch.cuda.empty_cache()
     gc.collect()
