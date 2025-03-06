@@ -54,6 +54,21 @@ def apply_saved_tensors(
     lm_model = model.model
     assert hasattr(lm_model, "layers"), "The model does not have the expected structure."
     for layer_idx, refusal_dir in refusal_dirs.items():
+        # lm_model.layers[layer_idx].self_attn.q_proj.weight = modify_tensor(
+            # lm_model.layers[layer_idx].self_attn.q_proj.weight.data,
+            # refusal_dir,
+            # scale_factor,
+        # )
+        # lm_model.layers[layer_idx].self_attn.k_proj.weight = modify_tensor(
+            # lm_model.layers[layer_idx].self_attn.k_proj.weight.data,
+            # refusal_dir,
+            # scale_factor,
+        # )  
+        # lm_model.layers[layer_idx].self_attn.v_proj.weight = modify_tensor(
+            # lm_model.layers[layer_idx].self_attn.v_proj.weight.data,
+            # refusal_dir,
+            # scale_factor,
+        # )  
         lm_model.layers[layer_idx].self_attn.o_proj.weight = modify_tensor(
             lm_model.layers[layer_idx].self_attn.o_proj.weight.data,
             refusal_dir,
@@ -64,7 +79,26 @@ def apply_saved_tensors(
             refusal_dir,
             scale_factor,
         )
-
+        # lm_model.layers[layer_idx].mlp.gate_proj.weight = modify_tensor(
+            # lm_model.layers[layer_idx].mlp.gate_proj.weight.data,
+            # refusal_dir,
+            # scale_factor,
+        # )  
+        # lm_model.layers[layer_idx].mlp.up_proj.weight = modify_tensor(
+            # lm_model.layers[layer_idx].mlp.up_proj.weight.data,
+            # refusal_dir,
+            # scale_factor,
+        # )  
+        lm_model.layers[layer_idx].input_layernorm.weight = modify_tensor(
+            lm_model.layers[layer_idx].input_layernorm.weight.data,
+            refusal_dir,
+            scale_factor,
+        )  
+        lm_model.layers[layer_idx].post_attention_layernorm.weight = modify_tensor(
+            lm_model.layers[layer_idx].post_attention_layernorm.weight.data,
+            refusal_dir,
+            scale_factor,
+        )
     torch.cuda.empty_cache()
     gc.collect()
 
